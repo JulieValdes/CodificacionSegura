@@ -29,49 +29,49 @@
             <div class="w-full bg-white rounded-lg shadow dark:border md:mt-0 sm:max-w-md xl:p-0 dark:bg-gray-800 dark:border-gray-700">
                 <div class="p-6 space-y-4 md:space-y-6 sm:p-8">
                     <h1 class="text-xl font-bold leading-tight tracking-tight text-gray-900 md:text-2xl dark:text-white">
-                        Create an account
+                        Crea una cuenta
                     </h1>
                     <form class="space-y-4 md:space-y-6" action="{{ route('register') }}" method="POST">
                         @csrf <!-- Token CSRF para protección -->
                         <!-- Campo para el nombre -->
                         <div>
-                            <label for="name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Name</label>
+                            <label for="name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Nombre</label>
                             <input 
                                 type="text" 
                                 name="name" 
                                 id="name" 
                                 class="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" 
-                                placeholder="John" 
+                                placeholder="María" 
                                 required 
                                 minlength="3" 
                                 maxlength="30" 
                                 pattern="[A-Za-zÁÉÍÓÚáéíóúÜüÑñ\s]+" 
-                                title="Name must be between 3-30 characters and contain only alphabetic characters.">
+                                title="El nombre debe tener entre 3-30 carácteres y sólo caracteres del alfabeto.">
                             @error('name')
                                 <small style="color: red" class="font-bold">{{$message}}</small>
                             @enderror
                         </div>
                         <!-- Campo para el apellido -->
                         <div>
-                            <label for="last_name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Last Name</label>
+                            <label for="last_name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Apellido</label>
                             <input 
                                 type="text" 
                                 name="last_name" 
                                 id="last_name" 
                                 class="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" 
-                                placeholder="Doe" 
+                                placeholder="Gonzales" 
                                 required 
                                 minlength="3" 
                                 maxlength="30" 
                                 pattern="[A-Za-zÁÉÍÓÚáéíóúÜüÑñ\s]+"
-                                title="Last name must be between 3-30 characters and contain only alphabetic characters.">
+                                title="El apellido debe tener entre 3-30 carácteres y sólo caracteres del alfabeto.">
                             @error('last_name')
                                 <small style="color: red" class="font-bold">{{$message}}</small>
                             @enderror
                         </div>
                         <!-- Campo para el correo electrónico -->
                         <div>
-                            <label for="email" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Your email</label>
+                            <label for="email" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Correo</label>
                             <input 
                                 type="email" 
                                 name="email" 
@@ -80,14 +80,14 @@
                                 placeholder="name@company.com" 
                                 required 
                                 maxlength="60" 
-                                title="Please enter a valid email address.">
+                                title="Ingresa un correo válido.">
                             @error('email')
                                 <small style="color: red" class="font-bold">{{$message}}</small>
                             @enderror
                         </div>
                         <!-- Campo para la contraseña -->
                         <div>
-                            <label for="password" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Password</label>
+                            <label for="password" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Contraseña</label>
                             <input 
                                 type="password" 
                                 name="password" 
@@ -97,14 +97,14 @@
                                 required 
                                 minlength="8" 
                                 pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[@$!%*#?&]).{8,}" 
-                                title="Password must be at least 8 characters long, include at least one uppercase letter, one lowercase letter, one number, and one special character (@$!%*#?&).">
+                                title="La contraseña debe contener al menos una letra mayúscula, una letra minúscula, un número y un carácter especial(@$!%*#?&).">
                             @error('password')
                                 <small style="color: red" class="font-bold">{{$message}}</small>
                             @enderror
                         </div>
                         <!-- Campo para confirmar la contraseña -->
                         <div>
-                            <label for="password_confirmation" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Confirm Password</label>
+                            <label for="password_confirmation" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Confirma tu contraseña</label>
                             <input 
                                 type="password" 
                                 name="password_confirmation" 
@@ -113,7 +113,8 @@
                                 class="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" 
                                 required 
                                 minlength="8" 
-                                title="Please confirm your password.">
+                                pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[@$!%*#?&]).{8,}" 
+                                title="Por favor confirma tu contraseña.">
                             @error('password_confirmation')
                                 <small style="color: red" class="font-bold">{{$message}}</small>
                             @enderror
@@ -128,10 +129,10 @@
                         <!-- Botón de registro -->
                         <button 
                             type="submit" 
-                            class="w-full text-white bg-blue-700 hover:bg-blue-200 hover:text-gray-700 hover:ring-blue-600 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">Sign up</button>
+                            class="w-full text-white bg-blue-700 hover:bg-blue-200 hover:text-gray-700 hover:ring-blue-600 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">Registrate.</button>
                         <!-- Enlace para iniciar sesión -->
                         <p class="text-sm font-light text-gray-500 dark:text-gray-400">
-                            Already have an account? <a href="{{ route('login') }}" class="font-medium text-primary-600 hover:underline dark:text-primary-500">Sign in</a>
+                            ¿Ya tienes una cuenta? <a href="{{ route('login') }}" class="font-medium text-primary-600 hover:underline dark:text-primary-500">Inicia Sesion</a>
                         </p>
                     </form>                                      
                 </div>

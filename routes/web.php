@@ -14,38 +14,41 @@ use Illuminate\Support\Facades\Route;
 */
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\LoginController;
-use App\Http\Controllers\Auth\TwoFactorController;
 
 Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->name('register');
-Route::post('/register', [RegisterController::class, 'register']);
+// Routes for authentication and registration
 
-// Show the email verification notice
-Route::get('verification/notice', [RegisterController::class, 'showVerificationNotice'])->name('verification.notice');
-Route::post('verification/verify', [RegisterController::class, 'verify'])->name('verification.verify');
-Route::post('verification/resend', [RegisterController::class, 'verificationResend'])->name('verification.resend');
+Route::middleware(['guest'])->group(function () {
+    Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->name('register');
+    Route::post('/register', [RegisterController::class, 'register']);
+    
+    Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
+    Route::post('/login', [LoginController::class, 'login']);
 
-Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
-Route::post('/login', [LoginController::class, 'login']);
-
-// Logout route
-Route::post('logout', [LoginController::class, 'logout'])->name('logout');
-
-// Two factor authentication routes
-Route::get('verification/two-factor', [LoginController::class, 'showTwoFactorForm'])->name('verification.twoFactorForm');
-Route::post('verification/two-factor', [LoginController::class, 'verifyTwoFactor']);
-
-//home route
-Route::get('/home', function () {
-    return view('home');
-})->name('home');
-
-Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('/dashboard', function () {
-        return view('dashboard');
-    })->name('dashboard');
 });
 
+// Routes for email verification
+Route::get('verification/notice', [RegisterController::class, 'showVerificationNotice'])->name('verification.notice');
+Route::post('verification/verify', [RegisterController::class, 'verify'])->name('verification.verify');
+
+// Route for code verification resend
+Route::post('verification/resend', [RegisterController::class, 'verificationResend'])->name('verification.resend');
+Route::post('verification/resendTwoFactor', [LoginController::class, 'verificationResendTwoFactor'])->name('verification.resendTwoFactor');
+
+// Routes for two-factor authentication
+Route::get('verification/two-factor', [LoginController::class, 'showTwoFactorForm'])->name('verification.twoFactorForm');
+Route::post('verification/two-factor', [LoginController::class, 'verifyTwoFactor'])->name('verification.twoFactor');
+
+// Route for logout
+Route::post('logout', [LoginController::class, 'logout'])->name('logout');
+
+
+// Route for dashboard view
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/home', function () {
+        return view('home');
+    })->name('home');
+});

@@ -19,6 +19,11 @@ use Carbon\Carbon;
 
 class RegisterController extends Controller
 {
+    /**
+     * Show the registration form.
+     * 
+     * @return \Illuminate\View\View
+     */
     public function showRegistrationForm()
     {
         return view('auth.register');
@@ -39,6 +44,30 @@ class RegisterController extends Controller
             'email' => 'required|string|email|max:60|unique:users',
             'password' => 'required|string|min:8|confirmed|regex:/[a-z]/|regex:/[A-Z]/|regex:/[0-9]/|regex:/[@$!%*#?&]/',
             'g-recaptcha-response' => 'required', //reCAPTCHA validation
+        ],[
+            'name.required' => 'El nombre es requerido.',
+            'name.string' => 'El nombre debe ser una cadena de texto.',
+            'name.max' => 'El nombre no debe exceder los 30 caracteres.',
+            'name.min' => 'El nombre debe tener al menos 3 caracteres.',
+            'name.alpha' => 'El nombre solo debe contener letras.',
+
+            'last_name.required' => 'El apellido es requerido.',
+            'last_name.string' => 'El apellido debe ser una cadena de texto.',
+            'last_name.max' => 'El apellido no debe exceder los 30 caracteres.',
+            'last_name.min' => 'El apellido debe tener al menos 3 caracteres.',
+            'last_name.alpha' => 'El apellido solo debe contener letras.',
+
+            'email.required' => 'El correo electrónico es requerido.',
+            'email.email' => 'El correo electrónico debe ser una dirección de correo válida.',
+            'email.max' => 'El correo electrónico no debe exceder los 60 caracteres.',
+            'email.unique' => 'El correo electrónico ya está en uso.',
+
+            'password.required' => 'La contraseña es requerida.',
+            'password.min' => 'La contraseña debe tener al menos 8 caracteres.',
+            'password.confirmed' => 'Las contraseñas no coinciden.',
+            'password.regex' => 'La contraseña debe contener al menos una letra mayúscula, una letra minúscula, un número y un carácter especial.',
+
+            'g-recaptcha-response.required' => 'Por favor, verifica que no eres un robot.',
         ]);
 
         if ($validator->fails()) {
@@ -80,11 +109,25 @@ class RegisterController extends Controller
 
     }
 
+    /**
+     * Verify the email with the verification code.
+     * 
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\RedirectResponse
+     */
     public function verify(Request $request)
     {
-        $request->validate([
+        $validator = Validator::make($request->all(), [
             'code' => 'required|string|size:6',
+        ], [
+            'code.required' => 'El código de verificación es requerido.',
+            'code.string' => 'El código de verificación debe ser una cadena de texto.',
+            'code.size' => 'El código de verificación debe tener 6 caracteres.',
         ]);
+
+        if ($validator->fails()) {
+            return redirect->route('verification.notice')->withErrors($validator);
+        }
 
         $user = User::where('email', $request->input('email'))->first(); // Get the authenticated user
 
@@ -119,7 +162,7 @@ class RegisterController extends Controller
     /**
      * Show the email verification notice.
      * 
-     * @return \Illuminate\Http\Response
+     * @return \Illuminate\View\View
      */
     
     public function showVerificationNotice()
@@ -132,8 +175,9 @@ class RegisterController extends Controller
      * Resend the email verification code.
      * 
      * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
+     * @return \Illuminate\Http\RedirectResponse
      */
+
     public function verificationResend(Request $request)
     {
         $user = User::where('email', $request->email)->first();
@@ -150,23 +194,23 @@ class RegisterController extends Controller
             'current_date' => Carbon::now(),
         ]);
 
-        // Verificar si ya existe un código de verificación en la base de datos y si ha expirado
+        // Verify if the user has a verification code and if it is necessary to wait
 
         if ($user->verification_code && $wait) {
             return redirect()->route('verification.notice')->with('error', 'Debes esperar antes de reenviar el correo.');
         }
 
-        // Generar un nuevo código de verificación
+        // Generate a new verification code and expiration date
         $verificationCode = Str::random(6);
         $encryptedCode = Crypt::encrypt($verificationCode); 
         $expirationTime = Carbon::now()->addMinutes(10);
 
-        // Guardar el nuevo código y la fecha de expiración en la base de datos
+        // Save the new verification code and expiration date in the user's record
         $user->verification_code = $encryptedCode;
         $user->verification_code_expires_at = $expirationTime;
         $user->save();
 
-        // Enviar el correo con el código de verificación
+        // Send the email with the new verification code
         Mail::to($user->email)->send(new VerificationEmail($verificationCode));
 
         session(['email' => $request->email]);
