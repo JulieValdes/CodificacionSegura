@@ -101,11 +101,13 @@ class RegisterController extends Controller
             'verification_code_expires_at' => Carbon::now()->addMinutes(10),
         ]);
 
+        session(['email' => $user->email]);
+
         // Send the email with the verification code
         Mail::to($user->email)->send(new VerificationEmail($verificationCode));
 
         // Redirect to the verification page with the email
-        return redirect()->route('verification.notice')->with('status', 'Se ha enviado un código de verificación a tu correo.');
+        return redirect()->signedRoute('verification.notice', ['email' => $user->email])->with('status', 'Se ha enviado un código de verificación a tu correo.');
 
     }
 
@@ -126,8 +128,10 @@ class RegisterController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return redirect->route('verification.notice')->withErrors($validator);
+            return redirect()->signedRoute('verification.notice')->withErrors($validator);
         }
+
+        Log::info(['Request' => $request->all()]);
 
         $user = User::where('email', $request->input('email'))->first(); // Get the authenticated user
 
@@ -142,7 +146,7 @@ class RegisterController extends Controller
         // Check if the code is correct and has not expired
         if ($request->input('code') === $decryptedCode) {
             if (!$wait) {
-                return back()->withErrors(['verification_code' => 'El código de verificación ha expirado.']);
+                return redirect()->signedRoute(['verification_code' => 'El código de verificación ha expirado.']);
             }
 
             // Mark the email as verified
@@ -156,7 +160,7 @@ class RegisterController extends Controller
             return redirect()->route('home')->with('success', 'Correo verificado correctamente.');
         }
 
-        return redirect()->route('verification.notice')->with('error', 'Código inválido o expirado.');
+        return redirect()->signedRoute('verification.notice')->with('error', 'Código inválido o expirado.');
     }
 
     /**
@@ -197,7 +201,7 @@ class RegisterController extends Controller
         // Verify if the user has a verification code and if it is necessary to wait
 
         if ($user->verification_code && $wait) {
-            return redirect()->route('verification.notice')->with('error', 'Debes esperar antes de reenviar el correo.');
+            return redirect()->signedRoute('verification.notice')->with('error', 'Debes esperar antes de reenviar el correo.');
         }
 
         // Generate a new verification code and expiration date
@@ -215,7 +219,7 @@ class RegisterController extends Controller
 
         session(['email' => $request->email]);
 
-        return redirect()->route('verification.notice')->with('success', 'Correo de verificación reenviado.');
+        return redirect()->signedRoute('verification.notice')->with('success', 'Correo de verificación reenviado.');
     }
 
     

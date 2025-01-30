@@ -15,11 +15,13 @@
                 <div class="p-6 space-y-4 md:space-y-6 sm:p-8">
                     <h1 class="text-2xl font-bold text-center text-gray-900 dark:text-white mb-4">Bienvenido</h1>
                     
-                    <button class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <a href="{{ route('logout') }}" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">Logout</a>
-                    </button>
-                    <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">
+                    <form id="logout-form" action="{{ route('logout') }}" method="POST">
                         @csrf
+                        <button 
+                            type="submit" 
+                            class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            Logout
+                        </button>
                     </form>
                 </div>
         </div>

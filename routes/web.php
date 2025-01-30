@@ -30,8 +30,14 @@ Route::middleware(['guest'])->group(function () {
 
 });
 
+Route::middleware(['auth', 'signed', 'ensure.not.verified'])->group(function () {
+    Route::get('verification/two-factor', [LoginController::class, 'showTwoFactorForm'])->name('verification.twoFactorForm');
+    Route::get('verification/notice', [RegisterController::class, 'showVerificationNotice'])->name('verification.notice');
+
+});
+Route::get('verification/two-factor', [LoginController::class, 'showTwoFactorForm'])->name('verification.twoFactorForm')->middleware('signed');
+
 // Routes for email verification
-Route::get('verification/notice', [RegisterController::class, 'showVerificationNotice'])->name('verification.notice');
 Route::post('verification/verify', [RegisterController::class, 'verify'])->name('verification.verify');
 
 // Route for code verification resend
@@ -39,11 +45,11 @@ Route::post('verification/resend', [RegisterController::class, 'verificationRese
 Route::post('verification/resendTwoFactor', [LoginController::class, 'verificationResendTwoFactor'])->name('verification.resendTwoFactor');
 
 // Routes for two-factor authentication
-Route::get('verification/two-factor', [LoginController::class, 'showTwoFactorForm'])->name('verification.twoFactorForm');
 Route::post('verification/two-factor', [LoginController::class, 'verifyTwoFactor'])->name('verification.twoFactor');
 
 // Route for logout
 Route::post('logout', [LoginController::class, 'logout'])->name('logout');
+
 
 
 // Route for dashboard view

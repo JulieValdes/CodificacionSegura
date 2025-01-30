@@ -1,0 +1,28 @@
+services:
+  mysql:
+    image: mysql:8.0
+    user: "1000:1000"
+    container_name: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: estandares
+      MYSQL_USER: fedoraa
+      MYSQL_PASSWORD: secret
+      MYSQL_SSL_CA: /etc/mysql/ssl/ca-cert.pem
+      MYSQL_SSL_CERT: /etc/mysql/ssl/server-cert.pem
+      MYSQL_SSL_KEY: /etc/mysql/ssl/server-key.pem
+    volumes:
+      - ./mysql/ssl:/etc/mysql/ssl
+      - mysql_data:/var/lib/mysql
+    command: [
+      "--ssl-ca=/etc/mysql/ssl/ca-cert.pem",
+      "--ssl-cert=/etc/mysql/ssl/server-cert.pem",
+      "--ssl-key=/etc/mysql/ssl/server-key.pem",
+      "--require-secure-transport=ON"
+    ]
+    ports:
+      - "3306:3306"
+
+
+volumes:
+  mysql_data:

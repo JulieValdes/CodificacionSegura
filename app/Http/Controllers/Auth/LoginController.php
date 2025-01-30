@@ -99,7 +99,7 @@ class LoginController extends Controller
             Mail::to($user->email)->send(new TwoFactorCodeMail($twoFactorCode));
 
             // Redirigir al formulario de verificación
-            return redirect()->route('verification.twoFactorForm')->with('status', 'Se ha enviado un código de verificación a tu correo.');;
+            return redirect()->signedRoute('verification.twoFactorForm', ['email' => $user->email])->with('status', 'Se ha enviado un código de verificación a tu correo.');
         }
 
         // Si las credenciales son incorrectas
@@ -143,7 +143,7 @@ class LoginController extends Controller
         // Verify if the user has a verification code and if it is necessary to wait
 
         if ($user->verification_code && $wait) {
-            return redirect()->route('verification.notice')->with('error', 'Debes esperar antes de reenviar el correo.');
+            return redirect()->signedRoute('vverification.twoFactorForm')->with('error', 'Debes esperar antes de reenviar el correo.');
         }
 
         // Generate a new verification code and expiration date
@@ -161,7 +161,7 @@ class LoginController extends Controller
 
         session(['email' => $request->email]);;
 
-        return redirect()->route('verification.twoFactorForm')->with('status', 'Se ha enviado un código de verificación a tu correo.');
+        return redirect()->signedRoute('verification.twoFactorForm')->with('status', 'Se ha reenviado un código de verificación a tu correo.');
     }
 
     /**
@@ -182,7 +182,7 @@ class LoginController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return redirect()->route('verification.twoFactorForm')->withErrors($validator);
+            return redirect()->signedRoute('verification.twoFactorForm', ['email' => $request->email])->withErrors($validator);
         }
 
         Log::info(['Request' => $request->all()]);
@@ -201,7 +201,7 @@ class LoginController extends Controller
 
         if ($request->input('code') === $decryptedCode) {
             if (!$wait) {
-                return back()->withErrors(['verification_code' => 'El código de verificación ha expirado.']);
+                return redirect()->signedRoute(['verification_code' => 'El código de verificación ha expirado.']);
             }
 
             // Mark the email as verified
@@ -212,10 +212,10 @@ class LoginController extends Controller
             $user->verification_code_expires_at = null; 
             $user->save();
 
-            return redirect()->route('home')->with('success', 'Autenficación de dos factores completada.');
+            return redirect()->route('home')->with('success', 'Autenticación de dos factores completada.');
         }
 
-        return redirect()->route('verification.twoFactorForm')->with('error', 'Código inválido o expirado.');
+        return redirect()->signedRoute('verification.twoFactorForm')->with('error', 'Código inválido o expirado.');
     }
 
     /**
