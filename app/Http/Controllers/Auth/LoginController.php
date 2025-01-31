@@ -81,11 +81,11 @@ class LoginController extends Controller
             // Verify if the user has verified their email
             if (!$user->email_verified_at) {
                 Auth::logout(); 
-                
-                
     
                 return redirect()->route('verification.notice')->with('error', 'Por favor verifica tu correo antes de iniciar sesión.');
             }
+            
+            $this->verifyCode($user);
 
             $twoFactorCode = Str::random(6); // Generate a 2FA code
             $encryptedCode = Crypt::encrypt($twoFactorCode); // Encrypt the code
@@ -112,8 +112,12 @@ class LoginController extends Controller
      * @return \Illuminate\View\View
      */
 
-    public function showTwoFactorForm()
+    public function showTwoFactorForm(Request $request)
     {
+        if ($request->session()->get('2fa_verified')) {
+            return redirect()->route('home')->with('error', 'Ya has completado la autenticación de dos factores.');
+        }
+
         return view('auth.two-factor'); // Vista para ingresar el código 2FA
     }
 
@@ -128,23 +132,7 @@ class LoginController extends Controller
     {
         $user = User::where('email', $request->email)->first();
 
-        $verificationDate = $user->verification_code_expires_at;
-        $verificationDate = Carbon::parse($verificationDate);
-    
-        $wait = (!$verificationDate || $verificationDate === '0000-00-00 00:00:00' || Carbon::now()->lessThan($verificationDate)) ? true : false;
-
-    
-        Log::info('ESPERAS O NO', [
-            'wait' => $wait,
-            'verification_date' => $verificationDate,
-            'current_date' => Carbon::now(),
-        ]);
-
-        // Verify if the user has a verification code and if it is necessary to wait
-
-        if ($user->verification_code && $wait) {
-            return redirect()->signedRoute('vverification.twoFactorForm')->with('error', 'Debes esperar antes de reenviar el correo.');
-        }
+        $this->verifyCode($user);
 
         // Generate a new verification code and expiration date
         $verificationCode = Str::random(6);
@@ -227,6 +215,7 @@ class LoginController extends Controller
 
     public function logout(Request $request)
     {
+        $request->session()->forget('2fa_verified');
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
@@ -235,5 +224,33 @@ class LoginController extends Controller
         Log::info('Usuario ha sido deslogueado');
         
         return redirect('/');
+    }
+
+    /**
+     * Verify if the user has a verification code and if it is necessary to wait
+     * 
+     * 
+     * 
+        * @return \Illuminate\Http\RedirectResponse
+        */
+
+    public function verifyCode(User $user){
+        $verificationDate = $user->verification_code_expires_at;
+        $verificationDate = Carbon::parse($verificationDate);
+    
+        $wait = (!$verificationDate || $verificationDate === '0000-00-00 00:00:00' || Carbon::now()->lessThan($verificationDate)) ? true : false;
+
+    
+        Log::info('ESPERAS O NO', [
+            'wait' => $wait,
+            'verification_date' => $verificationDate,
+            'current_date' => Carbon::now(),
+        ]);
+
+        // Verify if the user has a verification code and if it is necessary to wait
+
+        if ($user->verification_code && $wait) {
+            return redirect()->signedRoute('verification.twoFactorForm')->with('error', 'Debes esperar antes de reenviar el correo.');
+        }
     }
 }

@@ -39,8 +39,8 @@ class RegisterController extends Controller
     public function register(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:30|min:3|alpha',
-            'last_name' => 'required|string|max:30|min:3|alpha',
+            'name' => 'required|string|max:30|min:3|regex:/^[\pL\s]+$/u',
+            'last_name' => 'required|string|max:30|min:3|regex:/^[\pL\s]+$/u',
             'email' => 'required|string|email|max:60|unique:users',
             'password' => 'required|string|min:8|confirmed|regex:/[a-z]/|regex:/[A-Z]/|regex:/[0-9]/|regex:/[@$!%*#?&]/',
             'g-recaptcha-response' => 'required', //reCAPTCHA validation
