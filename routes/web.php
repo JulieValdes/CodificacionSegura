@@ -33,8 +33,8 @@ Route::middleware(['guest'])->group(function () {
 
 Route::middleware(['auth', 'signed'])->group(function () {
     Route::get('verification/two-factor', [LoginController::class, 'showTwoFactorForm'])->name('verification.twoFactorForm')->middleware('ensure.not.verified');
-    Route::get('verification/notice', [RegisterController::class, 'showVerificationNotice'])->name('verification.notice');
 });
+Route::get('verification/notice', [RegisterController::class, 'showVerificationNotice'])->name('verification.notice');
 
 // Routes for email verification
 Route::post('verification/verify', [RegisterController::class, 'verify'])->name('verification.verify');

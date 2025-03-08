@@ -93,6 +93,7 @@ class LoginController extends Controller
             // Save the 2FA code and expiration time in the user's record
             $user->verification_code = $encryptedCode;
             $user->verification_code_expires_at = Carbon::now()->addMinutes(10); // 10 minutes to verify
+            Log::info('Verification code expires at:', ['expires_at' => $user->verification_code_expires_at]);
             $user->save();
 
             // Enviar código al correo del usuario
@@ -199,6 +200,9 @@ class LoginController extends Controller
             // Clean the expiration date
             $user->verification_code_expires_at = null; 
             $user->save();
+
+            #saber si el usuario esta autenticado
+            Log::info('El usuario ha sido autenticado ' . Auth::check());
 
             return redirect()->route('home')->with('success', 'Autenticación de dos factores completada.');
         }
