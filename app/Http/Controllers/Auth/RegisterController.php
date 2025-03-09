@@ -90,6 +90,7 @@ class RegisterController extends Controller
         //Generate a verification code
         $verificationCode = Str::random(6); // Code of 6 characters
         $encryptedCode = Crypt::encrypt($verificationCode); // Encrypt the code
+        $verificationCodeExpiresAt = Carbon::now()->addMinutes(10);
 
         // Create a new user
         $user = User::create([
@@ -98,7 +99,7 @@ class RegisterController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'verification_code' => $encryptedCode,
-            'verification_code_expires_at' => Carbon::now()->addMinutes(10),
+            'verification_code_expires_at' => $verificationCodeExpiresAt,
         ]);
 
         session(['email' => $user->email]);
