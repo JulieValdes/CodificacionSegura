@@ -8,12 +8,10 @@ use Illuminate\Support\Facades\Auth;
 class EnsureNotVerified
 {
     public function handle(Request $request, Closure $next)
-    {
-        $user = Auth::user();
-
-        // Si el usuario ya ha completado la verificación, redirigir a home
-        if (!$user->verification_code) {
-            return redirect()->route('home')->with('error', 'Ya has completado la autentificacion.');
+    {         
+        // Verificar si el usuario ya ha verificado su correo electrónico
+        if (Auth::user()->email_verified_at) {
+            return redirect()->route('home')->with('error', 'Ya has verificado tu correo electrónico.');
         }
 
         return $next($request);

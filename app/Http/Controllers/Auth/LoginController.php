@@ -59,33 +59,43 @@ class LoginController extends Controller
             return redirect()->route('login')->withErrors($validator)->withInput();
         }
 
-        $response = Http::asForm()->post('https://www.google.com/recaptcha/api/siteverify', [
-            'secret' => '6LeSXsYqAAAAAOtwsniu326XIVfy8wC1gN4cyHr-', 
-            'response' => $request->input('g-recaptcha-response'),
-        ]);
-    
-        $responseBody = $response->json();
+        try {
+            $response = Http::asForm()->post('https://www.google.com/recaptcha/api/siteverify', [
+                'secret' => '6LeSXsYqAAAAAOtwsniu326XIVfy8wC1gN4cyHr-', 
+                'response' => $request->input('g-recaptcha-response'),
+            ]);
+        
+            $responseBody = $response->json();
 
-        Log::info($responseBody);
-    
-        if (!$responseBody['success']) {
-            return back()->withErrors(['captcha' => 'Captcha validation failed.']);
+            Log::info($responseBody);
+        
+            if (!$responseBody['success']) {
+                return back()->withErrors(['captcha' => 'Captcha validation failed.']);
+            }
+        } catch (\Exception $e) {
+            // Manejar errores de la solicitud HTTP
+            Log::error('Error al validar el reCAPTCHA: ' . $e->getMessage());
+            return back()->withErrors(['captcha' => 'Error al validar el reCAPTCHA. Por favor, intenta nuevamente.']);
         }
 
         // Attempt to log in the user
-        if (Auth::attempt($request->only('email', 'password'))) {
-            $user = Auth::user();
+        $user = User::where('email', $request->email)->first();
+        if (!$user) {
+            return redirect()->route('login')->with('error', 'El usuario no existe.');
+        }
+
+        if ($user && Hash::check($request->password, $user->password)) {
             
             session(['email' => $user->email]);
 
             // Verify if the user has verified their email
             if (!$user->email_verified_at) {
-                Auth::logout(); 
-    
                 return redirect()->route('verification.notice')->with('error', 'Por favor verifica tu correo antes de iniciar sesión.');
             }
             
-            $this->verifyCode($user);
+            if ($this->verifyCode($user)) {
+                return redirect()->signedRoute('verification.twoFactorForm', ['email' => $user->email])->with('error', 'Debes esperar antes de reenviar el correo.');
+            }
 
             $twoFactorCode = Str::random(6); // Generate a 2FA code
             $encryptedCode = Crypt::encrypt($twoFactorCode); // Encrypt the code
@@ -97,7 +107,12 @@ class LoginController extends Controller
             $user->save();
 
             // Enviar código al correo del usuario
-            Mail::to($user->email)->send(new TwoFactorCodeMail($twoFactorCode));
+            try {
+                Mail::to($user->email)->send(new TwoFactorCodeMail($twoFactorCode));
+            } catch (\Exception $e) {
+                Log::error('Error al enviar el correo de verificación: ' . $e->getMessage());
+                return redirect()->route('login')->with('error', 'Error al enviar el correo de verificación. Por favor, intenta nuevamente.');
+            }
 
             // Redirigir al formulario de verificación
             return redirect()->signedRoute('verification.twoFactorForm', ['email' => $user->email])->with('status', 'Se ha enviado un código de verificación a tu correo.');
@@ -133,7 +148,9 @@ class LoginController extends Controller
     {
         $user = User::where('email', $request->email)->first();
 
-        $this->verifyCode($user);
+        if ($this->verifyCode($user)) {
+            return redirect()->signedRoute('verification.twoFactorForm', ['email' => $user->email])->with('error', 'Debes esperar antes de reenviar el correo.');
+        }
 
         // Generate a new verification code and expiration date
         $verificationCode = Str::random(6);
@@ -146,11 +163,16 @@ class LoginController extends Controller
         $user->save();
 
         // Send the email with the new verification code
-        Mail::to($user->email)->send(new VerificationEmail($verificationCode));
+        try {
+            Mail::to($user->email)->send(new TwoFactorCodeMail($verificationCode));
+        } catch (\Exception $e) {
+            Log::error('Error al enviar el correo de verificación: ' . $e->getMessage());
+            return redirect()->route('verification.twoFactorForm', ['email' => $user->email])->with('error', 'Error al enviar el correo de verificación. Por favor, intenta nuevamente.');
+        }	
 
         session(['email' => $request->email]);;
 
-        return redirect()->signedRoute('verification.twoFactorForm')->with('status', 'Se ha reenviado un código de verificación a tu correo.');
+        return redirect()->signedRoute('verification.twoFactorForm', ['email' => $user->email])->with('status', 'Se ha reenviado un código de verificación a tu correo.');
     }
 
     /**
@@ -160,54 +182,99 @@ class LoginController extends Controller
      * @return \Illuminate\Http\RedirectResponse
      */
 
-    public function verifyTwoFactor(Request $request)
-    {
+     public function verifyTwoFactor(Request $request)
+     {
         $validator = Validator::make($request->all(), [
             'code' => 'required|string|size:6',
-        ],
-        [
+            
+            'g-recaptcha-response' => 'required', //reCAPTCHA validation
+        ], [
             'code.required' => 'El código de verificación es requerido.',
             'code.size' => 'El código de verificación debe tener 6 caracteres.',
+            
+            'g-recaptcha-response.required' => 'Por favor, verifica que no eres un robot.',
         ]);
-
+    
         if ($validator->fails()) {
             return redirect()->signedRoute('verification.twoFactorForm', ['email' => $request->email])->withErrors($validator);
         }
 
-        Log::info(['Request' => $request->all()]);
+        try {
+            $response = Http::asForm()->post('https://www.google.com/recaptcha/api/siteverify', [
+                'secret' => '6LeSXsYqAAAAAOtwsniu326XIVfy8wC1gN4cyHr-', 
+                'response' => $request->input('g-recaptcha-response'),
+            ]);
+        
+            $responseBody = $response->json();
 
-        $user = User::where('email', $request->input('email'))->first(); // Get the authenticated user
-
-
-        $verificationDate = $user->verification_code_expires_at;
-        $verificationDate = Carbon::parse($verificationDate);
-
-        // Decrypt the verification code from the database
-        $decryptedCode = Crypt::decrypt($user->verification_code);
-
-        $wait = (!$verificationDate || $verificationDate === '0000-00-00 00:00:00' || Carbon::now()->lessThan($verificationDate)) ? true : false;
-
-
-        if ($request->input('code') === $decryptedCode) {
-            if (!$wait) {
-                return redirect()->signedRoute(['verification_code' => 'El código de verificación ha expirado.']);
+            Log::info($responseBody);
+        
+            if (!$responseBody['success']) {
+                return back()->withErrors(['captcha' => 'Captcha validation failed.']);
             }
-
-            // Mark the email as verified
-            $user->email_verified_at = now();
-            // Clean the verification code
-            $user->verification_code = null; 
-            // Clean the expiration date
-            $user->verification_code_expires_at = null; 
-            $user->save();
-
-            #saber si el usuario esta autenticado
-            Log::info('El usuario ha sido autenticado ' . Auth::check());
-
-            return redirect()->route('home')->with('success', 'Autenticación de dos factores completada.');
+        } catch (\Exception $e) {
+            Log::error('Error al validar el reCAPTCHA: ' . $e->getMessage());
+            return back()->withErrors(['captcha' => 'Error al validar el reCAPTCHA. Por favor, intenta nuevamente.']);
         }
+    
+        Log::info(['Request' => $request->all()]);
+    
+        $user = User::where('email', $request->input('email'))->first();
+    
+        if (!$user) {
+            return redirect()->route('login')->with('error', 'El usuario no existe.');
+        }
+    
+        // if the user doesn't have a verification code generate one
+        if (!$user->verification_code) {
+            // Verify if the user must wait before requesting a new code
+            if ($this->verifyCode($user)) {
+                return redirect()->route('verification.twoFactorForm', ['email' => $user->email])->with('error', 'Debes esperar antes de solicitar un nuevo código.');
+            }
+    
+            // Generate a new verification code and expiration date
+            $verificationCode = Str::random(6);
+            $encryptedCode = Crypt::encrypt($verificationCode);
+            $expirationTime = Carbon::now()->addMinutes(10);
+    
+            // Save the new verification code and expiration date in the user's record
+            $user->verification_code = $encryptedCode;
+            $user->verification_code_expires_at = $expirationTime;
+            $user->save();
+    
+            // Send the email with the new verification code
+            try {
+                Mail::to($user->email)->send(new TwoFactorCodeMail($verificationCode));
+            } catch (\Exception $e) {
+                Log::error('Error al enviar el correo de verificación: ' . $e->getMessage());
+                return redirect()->route('login')->with('error', 'Error al enviar el correo de verificación. Por favor, intenta nuevamente.');
+            }
+    
+            return redirect()->route('verification.twoFactorForm', ['email' => $user->email])->with('status', 'Se ha enviado un código de verificación a tu correo.');
+        }
+     
+        $decryptedCode = Crypt::decrypt($user->verification_code);
+     
+        if ($request->input('code') === $decryptedCode) {
+            // Verify if the user must wait before verifying the code
+            if ($this->verifyCode($user)) {
 
-        return redirect()->signedRoute('verification.twoFactorForm')->with('error', 'Código inválido o expirado.');
+                $user->email_verified_at = now();
+                $user->verification_code = null;
+                $user->verification_code_expires_at = null;
+                $user->save();
+    
+                Auth::login($user);
+    
+                Log::info('El usuario ha sido autenticado ' . Auth::check());
+    
+                return redirect()->route('home')->with('success', 'Autenticación de dos factores completada.');
+            } else {
+                return redirect()->signedRoute('verification.twoFactorForm', ['email' => $user->email])->with('error', 'El código de verificación ha expirado.');
+            }
+        }
+    
+        return redirect()->signedRoute('verification.twoFactorForm', ['email' => $user->email])->with('error', 'Código inválido o ha expirado.');
     }
 
     /**
@@ -224,37 +291,37 @@ class LoginController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        // Verificar si se está procesando correctamente
         Log::info('Usuario ha sido deslogueado');
         
         return redirect('/');
     }
 
     /**
-     * Verify if the user has a verification code and if it is necessary to wait
-     * 
-     * 
-     * 
-        * @return \Illuminate\Http\RedirectResponse
-        */
+     * Verify the two factor authentication code
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Boolean
+     */
 
-    public function verifyCode(User $user){
-        $verificationDate = $user->verification_code_expires_at;
-        $verificationDate = Carbon::parse($verificationDate);
-    
-        $wait = (!$verificationDate || $verificationDate === '0000-00-00 00:00:00' || Carbon::now()->lessThan($verificationDate)) ? true : false;
-
-    
-        Log::info('ESPERAS O NO', [
-            'wait' => $wait,
-            'verification_date' => $verificationDate,
-            'current_date' => Carbon::now(),
-        ]);
-
-        // Verify if the user has a verification code and if it is necessary to wait
-
-        if ($user->verification_code && $wait) {
-            return redirect()->signedRoute('verification.twoFactorForm')->with('error', 'Debes esperar antes de reenviar el correo.');
-        }
-    }
+     public function verifyCode(User $user)
+     {
+         if (!$user->verification_code) {
+             return false;
+         }
+     
+         // Get the expiration date of the verification code
+         $verificationDate = $user->verification_code_expires_at;
+         $verificationDate = Carbon::parse($verificationDate);
+     
+         // Determine if the user must wait (true if the code is still valid, false if it has expired)
+         $wait = ($verificationDate && Carbon::now()->lessThan($verificationDate));
+     
+         Log::info('ESPERAS O NO', [
+             'wait' => $wait,
+             'verification_date' => $verificationDate,
+             'current_date' => Carbon::now(),
+         ]);
+     
+         return $wait;
+     }
 }

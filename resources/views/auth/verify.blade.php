@@ -6,6 +6,9 @@
     <title>Verificación de Correo</title>
     <!-- Incluyendo TailwindCSS -->
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+
+    <!-- Script de reCAPTCHA -->
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 </head>
 <body class="bg-gray-50 dark:bg-gray-900">
     <div class="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-800">
@@ -41,9 +44,19 @@
             <form action="{{ route('verification.verify') }}" method="POST">
                 @csrf
                 <label for="code" class="block text-sm font-medium text-gray-900 dark:text-white mb-2">Ingresa el código de verificación:</label>
+                @error('code')
+                    <small style="color: red" class="font-bold">{{ $message }}</small>
+                @enderror
                 <input type="text" name="code" id="code" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:focus:ring-blue-500 mb-4" required>
                 <input type="hidden" name="email" value="{{ session('email') }}">
-                <button type="submit" class="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500">
+                <!-- Campo para reCAPTCHA -->
+                <div>
+                    <div class="g-recaptcha block my-1 w-full" data-sitekey="6LeSXsYqAAAAABxX1_WMUS0RxpSP1uIP3jVsONb9"></div>
+                    @error('g-recaptcha-response')
+                        <span class="text-red-500 text-sm">{{ $message }}</span>
+                    @enderror
+                </div>
+                <button type="submit" class="mt-1 w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500">
                     Verificar
                 </button>
             </form>

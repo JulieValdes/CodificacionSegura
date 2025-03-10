@@ -19,38 +19,31 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-// Routes for authentication and registration
-
+// Authentication Routes
 Route::middleware(['guest'])->group(function () {
     Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->name('register');
     Route::post('/register', [RegisterController::class, 'register']);
     
     Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [LoginController::class, 'login']);
-
 });
 
-
-Route::middleware(['auth', 'signed'])->group(function () {
-    Route::get('verification/two-factor', [LoginController::class, 'showTwoFactorForm'])->name('verification.twoFactorForm')->middleware('ensure.not.verified');
+// Verificacion Routes
+Route::middleware(['signed', 'guest'])->group(function () {
+    Route::get('verification/two-factor', [LoginController::class, 'showTwoFactorForm'])->name('verification.twoFactorForm');
+    Route::get('verification/notice', [RegisterController::class, 'showVerificationNotice'])->name('verification.notice');
 });
-Route::get('verification/notice', [RegisterController::class, 'showVerificationNotice'])->name('verification.notice');
 
-// Routes for email verification
+// Email verification
 Route::post('verification/verify', [RegisterController::class, 'verify'])->name('verification.verify');
-
-// Route for code verification resend
 Route::post('verification/resend', [RegisterController::class, 'verificationResend'])->name('verification.resend');
-Route::post('verification/resendTwoFactor', [LoginController::class, 'verificationResendTwoFactor'])->name('verification.resendTwoFactor');
 
-// Routes for two-factor authentication
+// Two-factor authentication
+Route::post('verification/resendTwoFactor', [LoginController::class, 'verificationResendTwoFactor'])->name('verification.resendTwoFactor');
 Route::post('verification/two-factor', [LoginController::class, 'verifyTwoFactor'])->name('verification.twoFactor');
 
-// Route for logout
 Route::post('logout', [LoginController::class, 'logout'])->name('logout');
 
-
-// Route for dashboard view
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/home', function () {
         return view('home');
