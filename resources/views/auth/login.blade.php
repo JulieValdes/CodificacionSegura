@@ -99,7 +99,7 @@
                     @endif
                 </div>
             </div>
-            (Server 1)
+            (Server 2)
         </div>
     </section>
 </body>
