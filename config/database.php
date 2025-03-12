@@ -56,11 +56,11 @@ return [
                 'prefix' => '',
                 'strict' => true,
                 'engine' => null,
-                /*'options' => extension_loaded('pdo_mysql') ? [
-                    PDO::MYSQL_ATTR_SSL_CA => env('DB_SSL_CA'),
-                    PDO::MYSQL_ATTR_SSL_CERT => env('DB_SSL_CERT'),
-                    PDO::MYSQL_ATTR_SSL_KEY => env('DB_SSL_KEY'),
-                ] : [],*/
+                'options'   => extension_loaded('pdo_mysql') ? array_filter([ 
+PDO::MYSQL_ATTR_SSL_CA    => env('DB_SSLCA', 
+'/etc/ssl/certs/mariadb-ca.pem'), 
+PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT => true, 
+]) : [], 
             ],
 
         'pgsql' => [
