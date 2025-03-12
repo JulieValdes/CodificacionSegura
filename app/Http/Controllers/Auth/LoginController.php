@@ -90,7 +90,7 @@ class LoginController extends Controller
 
             // Verify if the user has verified their email
             if (!$user->email_verified_at) {
-                return redirect()->route('verification.notice')->with('error', 'Por favor verifica tu correo antes de iniciar sesión.');
+                return redirect()->signedRoute('verification.notice')->with('error', 'Por favor verifica tu correo antes de iniciar sesión.');
             }
             
             if ($this->verifyCode($user)) {
